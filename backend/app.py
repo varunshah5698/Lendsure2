@@ -85,6 +85,20 @@ def _resolve_db_path() -> Path:
             except Exception:
                 pass  # fall through to a fresh empty DB
         return tmp
+    # Managed/serverless hosts (Freebuff, generic platforms): point LENDSURE_DB_PATH
+    # at a writable location (often /tmp) to run the DB outside the read-only app dir.
+    override = os.environ.get("LENDSURE_DB_PATH", "").strip()
+    if override:
+        p = Path(override)
+        if not p.exists():
+            p.parent.mkdir(parents=True, exist_ok=True)
+            src = live if live.exists() else SEED_DB_PATH
+            try:
+                shutil.copyfile(src, p)
+                print(f"[db] seeded LENDSURE_DB_PATH from {src.name}", flush=True)
+            except Exception as e:
+                print(f"[db] LENDSURE_DB_PATH seed failed: {e}", flush=True)
+        return p
     return live
 
 

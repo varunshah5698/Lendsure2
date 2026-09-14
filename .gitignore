@@ -6,6 +6,10 @@ __pycache__/
 *.pyc
 .DS_Store
 
+# frontend build output (rebuilt by the deploy/preview build command)
+frontend/dist/
+/dist/
+
 # training raw data (reproducible via ml_credit/data.py)
 ml_credit/data/
 
