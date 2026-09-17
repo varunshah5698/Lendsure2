@@ -1,0 +1,28 @@
+/* Stamp badges — inked outline, squared dot, uppercase ledger marks. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 9px;
+  border: 1.5px solid currentColor;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.badge-success { background: var(--success-light); color: #047857; }
+.badge-warning { background: var(--warning-light); color: #92400e; }
+.badge-danger { background: var(--danger-light); color: #b91c1c; }
+.badge-info { background: var(--info-light); color: #1d4ed8; }
+.badge-purple { background: var(--purple-light); color: #6d28d9; }
+.badge-default { background: var(--bg-alt); color: var(--text-secondary); }

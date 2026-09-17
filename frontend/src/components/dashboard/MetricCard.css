@@ -1,0 +1,75 @@
+/* Dashboard metric card — boxed ink border, hard offset shadow. */
+.metric-card {
+  background: var(--surface);
+  border: 2px solid var(--pv-ink);
+  border-radius: 14px;
+  padding: 18px;
+  position: relative;
+  box-shadow: var(--pv-hard);
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.metric-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 6px 6px 0 var(--pv-ink);
+}
+.metric-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.metric-text { min-width: 0; }
+.metric-value {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.metric-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-top: 6px;
+  line-height: 1.45;
+}
+.metric-chip {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1.5px solid var(--pv-ink);
+}
+.metric-success .metric-chip { background: var(--success-light); color: var(--success); }
+.metric-warning .metric-chip { background: var(--warning-light); color: var(--warning); }
+.metric-danger .metric-chip { background: var(--danger-light); color: var(--danger); }
+.metric-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+.metric-sub { font-size: 12px; color: var(--text-muted); }
+.metric-trend {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--bg-alt);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.trend-up { color: var(--success); background: var(--success-light); }
+.trend-down { color: var(--danger); background: var(--danger-light); }
