@@ -254,8 +254,9 @@ async def security_middleware(request: Request, call_next):
         resp.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
     resp.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self'; "
-        "style-src 'self' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; "
+        "style-src 'self' https://fonts.googleapis.com https://db.onlinewebfonts.com; "
+        "font-src 'self' https://fonts.gstatic.com https://db.onlinewebfonts.com data:; "
+        "img-src 'self' data:; media-src 'self' https://d8j0ntlcm91z4.cloudfront.net; "
         "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
     return resp
 
