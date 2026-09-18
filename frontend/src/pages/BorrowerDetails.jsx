@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ui/Toast";
@@ -57,6 +57,14 @@ export default function BorrowerDetails() {
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [changed, setChanged] = useState(null);
 
+  // Memoize points for cash flow chart to prevent unnecessary recalculations
+  const cashflowPoints = useMemo(() => {
+    return (cashflow?.snapshots?.length ? cashflow.snapshots : financials).map((s) => ({
+      label: s.label || `M${s.month}`,
+      values: { income: s.income || 0, expenses: s.expenses || 0 },
+    }));
+  }, [cashflow?.snapshots, financials]);
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -70,7 +78,11 @@ export default function BorrowerDetails() {
       setFinancials(snaps);
       setAnalysis(a);
       borrowers.cashflow(id, session.token).then(setCashflow).catch(() => setCashflow(null));
-      intel.riskHistory(id, session.token).then((h) => setChanged(h.what_changed)).catch(() => {});
+      intel.riskHistory(id, session.token).then((h) => {
+        if (h && h.what_changed !== undefined) {
+          setChanged(h.what_changed);
+        }
+      }).catch(() => {});
     } catch (e) {
       setError(e.message);
     } finally {
@@ -257,23 +269,20 @@ export default function BorrowerDetails() {
           <div className="bp-ov-grid">
             <Card>
               <CardHeader><CardTitle>Cash flow trend</CardTitle><CardDescription>Monthly income vs expenses</CardDescription></CardHeader>
-              <CardContent>
-                <CashFlowChart title="" points={(cashflow?.snapshots?.length ? cashflow.snapshots : financials).map((s) => ({
-                    label: s.label || `M${s.month}`,
-                    values: { income: s.income || 0, expenses: s.expenses || 0 },
-                  }))}
-                  format={(v) => inr(Math.round(v))}
-                  series={[
-                    { key: "income", label: "Income", color: "var(--success)" },
-                    { key: "expenses", label: "Expenses", color: "var(--warning)" },
-                  ]} />
-                {fin && (
-                  <div style={{ marginTop: 14 }}>
-                    <div className="bp-ratio"><span>Debt-to-income</span><b>{fin.dti}</b></div>
-                    <div className="bp-ratio"><span>Repayment capacity</span><b>{(fin.repayment_capacity * 100).toFixed(0)}%</b></div>
-                  </div>
-                )}
-              </CardContent>
+<CardContent>
+                 <CashFlowChart title="" points={cashflowPoints}
+                   format={(v) => inr(Math.round(v))}
+                   series={[
+                     { key: "income", label: "Income", color: "var(--success)" },
+                     { key: "expenses", label: "Expenses", color: "var(--warning)" },
+                   ]} />
+                   {fin && (
+                   <div style={{ marginTop: 14 }}>
+                     <div className="bp-ratio"><span>Debt-to-income</span><b>{fin.dti}</b></div>
+                     <div className="bp-ratio"><span>Repayment capacity</span><b>{(fin.repayment_capacity * 100).toFixed(0)}%</b></div>
+                   </div>
+                 )}
+               </CardContent>
             </Card>
 
             <Card>
@@ -286,25 +295,25 @@ export default function BorrowerDetails() {
             </Card>
           </div>
         )}
-        {tab === "overview" && changed && (
-          <Card style={{ marginTop: 16 }}>
-            <CardHeader>
-              <CardTitle>What changed?</CardTitle>
-              <CardDescription>
-                Analysis #{changed.from_analysis} → #{changed.to_analysis} · risk {changed.risk.before} → {changed.risk.after} ({changed.risk.delta >= 0 ? "+" : ""}{changed.risk.delta})
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {(changed.top_factor_moves || []).map((f) => (
-                <div key={f.code} className="audit-row">
-                  <div><b>{f.title}</b> <span style={{ color: "var(--text-muted)" }}>{f.before} → {f.after}</span></div>
-                  <b style={{ color: f.delta > 0 ? "var(--danger)" : "var(--success)" }}>{f.delta > 0 ? "+" : ""}{f.delta}</b>
-                </div>
-              ))}
-              {!(changed.top_factor_moves || []).length && <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No material factor moves between the last two analyses.</p>}
-            </CardContent>
-          </Card>
-        )}
+{tab === "overview" && changed && (
+           <Card style={{ marginTop: 16 }}>
+             <CardHeader>
+               <CardTitle>What changed?</CardTitle>
+               <CardDescription>
+                 Analysis #{changed?.from_analysis} → #{changed?.to_analysis} · risk {changed?.risk?.before} → {changed?.risk?.after} ({changed?.risk?.delta >= 0 ? "+" : ""}{changed?.risk?.delta})
+               </CardDescription>
+             </CardHeader>
+             <CardContent>
+               {(changed?.top_factor_moves || []).map((f) => (
+                 <div key={f.code || f.title || Math.random()} className="audit-row">
+                   <div><b>{f.title || f.code}</b> <span style={{ color: "var(--text-muted)" }}>{f.before} → {f.after}</span></div>
+                   <b style={{ color: (f.delta || 0) > 0 ? "var(--danger)" : "var(--success)" }}>{(f.delta || 0) > 0 ? "+" : ""}{Math.abs(f.delta || 0)}</b>
+                 </div>
+               ))}
+               {!(changed?.top_factor_moves || []).length && <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No material factor moves between the last two analyses.</p>}
+             </CardContent>
+           </Card>
+         )}
 
         {tab === "cashflow" && <CashFlowTab financials={financials} cashflow={cashflow} />}
         {tab === "repayment" && <RepaymentTab borrower={borrower} fin={fin} />}
@@ -322,19 +331,19 @@ export default function BorrowerDetails() {
 /* --- Sub-tabs --- */
 
 function CashFlowTab({ financials, cashflow }) {
-  const snaps = cashflow?.snapshots?.length ? cashflow.snapshots : financials;
-  const moneyPoints = (snaps || []).map((s) => ({
+  const snaps = useMemo(() => cashflow?.snapshots?.length ? cashflow.snapshots : financials, [cashflow?.snapshots, financials]);
+  const moneyPoints = useMemo(() => (snaps || []).map((s) => ({
     label: s.label || `M${s.month}`,
     values: {
       income: s.income || 0,
       expenses: s.expenses || 0,
       net: (s.income || 0) - (s.expenses || 0),
     },
-  }));
-  const oblPoints = (cashflow?.monthly_obligations || []).map((m) => ({
+  })), [snaps]);
+  const oblPoints = useMemo(() => (cashflow?.monthly_obligations || []).map((m) => ({
     label: m.month,
     values: { due: m.due || 0, paid: m.paid_actual || 0 },
-  }));
+  })), [cashflow?.monthly_obligations]);
   const sum = cashflow?.summary;
   if (!moneyPoints.length && !oblPoints.length) {
     return <EmptyState title="No financial data" description="Financial snapshots are not available for this borrower." />;

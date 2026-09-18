@@ -129,12 +129,12 @@ function Hero() {
         </motion.p>
         <motion.div className="lp-hero-ctas" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.7 }}>
           <Link to={app} className="lp-btn-primary lp-btn-lg">{session ? "Open Dashboard →" : "Analyze a Borrower →"}</Link>
-          <a href="#how-it-works" className="lp-btn-outline lp-btn-lg lp-video-btn-outline">Explore the Intelligence</a>
+          <a href="#how-it-works" className="lp-btn-outline lp-btn-lg">Explore the Intelligence</a>
         </motion.div>
         <motion.div className="lp-hero-badges" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1, duration: 0.8 }}>
-          <span className="lp-badge lp-badge-video">AI-powered</span>
-          <span className="lp-badge lp-badge-video">Explainable</span>
-          <span className="lp-badge lp-badge-video">Auditable</span>
+          <span className="lp-badge lp-badge-lime">AI-powered</span>
+          <span className="lp-badge">Explainable</span>
+          <span className="lp-badge">Auditable</span>
         </motion.div>
       </div>
       <a href="#how-it-works" className="lp-video-scroll" aria-label="Scroll to how it works"><span aria-hidden="true">↓</span></a>

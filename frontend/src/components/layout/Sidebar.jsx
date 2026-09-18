@@ -9,6 +9,7 @@ const NAV = [
   { section: "Overview", items: [
     { label: "Dashboard", path: "/dashboard", icon: "grid" },
     { label: "Borrowers", path: "/borrowers", icon: "users" },
+    { label: "CIBIL Check", path: "/cibil", icon: "idcard" },
     { label: "AI Assistant", path: "/assistant", icon: "sparkles" },
   ]},
   { section: "Lending", items: [

@@ -113,9 +113,8 @@
 .lp-root .lp-video-hero-title { margin: 0 0 20px; font-family: "Space Grotesk", "Inter", system-ui, sans-serif; font-weight: 600; letter-spacing: -0.01em; line-height: 1.04; font-size: clamp(44px, 6.5vw, 76px); color: #fff; }
 .lp-video-hero-title .lp-hero-accent { color: #191a23; }
 .lp-video-hero-sub { font-size: clamp(15px, 2vw, 18px); line-height: 1.6; color: #fff; max-width: 520px; margin: 0 0 30px; }
-.lp-video-btn-outline { color: #fff; background: transparent; }
-.lp-video-btn-outline:hover { background: var(--pv-smoke); color: var(--pv-ink); }
-.lp-badge-video { border-color: #fff; color: #fff; background: rgba(0, 0, 0, 0.25); }
+.lp-badge-lime { background: var(--pv-lime); }
+.lp-hero-badges .lp-badge { box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55); }
 .lp-nav:not(.lp-nav-scrolled) .lp-nav-name,
 .lp-nav:not(.lp-nav-scrolled) .lp-nav-tag,
 .lp-nav:not(.lp-nav-scrolled) .lp-nav-links a,

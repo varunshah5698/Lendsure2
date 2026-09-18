@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Borrowers from "./pages/Borrowers";
 import BorrowerDetails from "./pages/BorrowerDetails";
+import Cibil from "./pages/Cibil";
 import LoanRequests from "./pages/LoanRequests";
 import LoanRequestDetail from "./pages/LoanRequestDetail";
 import Loans from "./pages/Loans";
@@ -58,6 +59,7 @@ function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState("");
   const location = useLocation();
+  const [isInitialRender, setIsInitialRender] = useState(true);
 
   const prevPath = useRef(location.pathname);
 
@@ -68,7 +70,18 @@ function AppLayout() {
       setSearch("");
     }
     prevPath.current = location.pathname;
+    if (isInitialRender) {
+      setIsInitialRender(false);
+    }
   }, [location.pathname]);
+
+  // Simple fast page fade - no scale (scale feels like zoom + causes lag)
+  const pageTransition = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -8 },
+    transition: { duration: 0.18, ease: "easeOut" },
+  };
 
   return (
     <div className="app-layout">
@@ -77,35 +90,37 @@ function AppLayout() {
         <Topbar searchQuery={search} onSearchChange={setSearch} />
         <div className="app-content">
           <ErrorBoundary>
-          <AnimatePresence mode="wait">
-            <motion.div key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}>
+<AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={pageTransition.initial}
+              animate={pageTransition.animate}
+              exit={pageTransition.exit}
+              transition={pageTransition.transition}
+            >
               <Routes location={location}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/borrowers" element={<Borrowers searchQuery={search} />} />
-            <Route path="/borrower/:id" element={<BorrowerDetails />} />
-            <Route path="/loan-requests" element={<RequireLender><LoanRequests /></RequireLender>} />
-            <Route path="/loan-requests/:id" element={<RequireLender><LoanRequestDetail /></RequireLender>} />
-            <Route path="/loans" element={<RequireLender><Loans /></RequireLender>} />
-            <Route path="/loans/:id" element={<RequireLender><LoanDetail /></RequireLender>} />
-            <Route path="/cases" element={<RequireLender><Cases /></RequireLender>} />
-            <Route path="/grievances" element={<RequireLender><Grievances /></RequireLender>} />
-            <Route path="/grievances/:id" element={<RequireLender><GrievanceDetail /></RequireLender>} />
-            <Route path="/assistant" element={<Assistant />} />
-            <Route path="/simulations" element={<RequireLender><Simulations /></RequireLender>} />
-            <Route path="/security" element={<RequireLender><Security /></RequireLender>} />
-            <Route path="/admin/overview" element={<RequireLender><AdminOverview /></RequireLender>} />
-            <Route path="/admin/officers" element={<RequireLender><Officers /></RequireLender>} />
-            <Route path="/admin/approvals" element={<RequireLender><AdminApprovals /></RequireLender>} />
-            <Route path="/admin/model" element={<RequireLender><AdminModel /></RequireLender>} />
-            <Route path="/admin/policies" element={<RequireLender><AdminPolicies /></RequireLender>} />
-            <Route path="/admin/settings" element={<RequireLender><AdminSettings /></RequireLender>} />
-            <Route path="/admin/jobs" element={<RequireLender><AdminJobs /></RequireLender>} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/borrowers" element={<Borrowers searchQuery={search} />} />
+                <Route path="/borrower/:id" element={<BorrowerDetails />} />
+                <Route path="/cibil" element={<Cibil />} />
+                <Route path="/loan-requests" element={<RequireLender><LoanRequests /></RequireLender>} />
+                <Route path="/loan-requests/:id" element={<RequireLender><LoanRequestDetail /></RequireLender>} />
+                <Route path="/loans" element={<RequireLender><Loans /></RequireLender>} />
+                <Route path="/loans/:id" element={<RequireLender><LoanDetail /></RequireLender>} />
+                <Route path="/cases" element={<RequireLender><Cases /></RequireLender>} />
+                <Route path="/grievances" element={<RequireLender><Grievances /></RequireLender>} />
+                <Route path="/grievances/:id" element={<RequireLender><GrievanceDetail /></RequireLender>} />
+                <Route path="/assistant" element={<Assistant />} />
+                <Route path="/simulations" element={<RequireLender><Simulations /></RequireLender>} />
+                <Route path="/security" element={<RequireLender><Security /></RequireLender>} />
+                <Route path="/admin/overview" element={<RequireLender><AdminOverview /></RequireLender>} />
+                <Route path="/admin/officers" element={<RequireLender><Officers /></RequireLender>} />
+                <Route path="/admin/approvals" element={<RequireLender><AdminApprovals /></RequireLender>} />
+                <Route path="/admin/model" element={<RequireLender><AdminModel /></RequireLender>} />
+                <Route path="/admin/settings" element={<RequireLender><AdminSettings /></RequireLender>} />
+                <Route path="/admin/jobs" element={<RequireLender><AdminJobs /></RequireLender>} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
             </motion.div>
           </AnimatePresence>
           </ErrorBoundary>

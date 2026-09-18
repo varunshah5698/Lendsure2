@@ -1,0 +1,286 @@
+.cibil-lookup {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.cibil-lookup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 220px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.cibil-lookup-field > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11.5px;
+}
+.cibil-lookup-input {
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+.cibil-lookup-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.cibil-lookup-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cibil-report {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cibil-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .cibil-grid-2 { grid-template-columns: 1fr; }
+}
+
+.cibil-score-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.cibil-score {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.cibil-score-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.cibil-scale { margin-top: 16px; }
+.cibil-scale-track {
+  position: relative;
+  height: 10px;
+  border-radius: 99px;
+  background: linear-gradient(to right, var(--danger-light), var(--warning-light), var(--success-light));
+  border: 1px solid var(--border);
+}
+.cibil-scale-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 99px;
+  background: linear-gradient(to right, var(--danger), var(--warning), var(--success));
+  opacity: 0.55;
+}
+.cibil-scale-marker {
+  position: absolute;
+  top: -4px;
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--pv-ink);
+  transform: translateX(-50%);
+}
+.cibil-scale-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.cibil-estimate {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  background: var(--warning-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.cibil-profile {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.cibil-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--pv-lime);
+  border: 2px solid var(--pv-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-family: var(--font-display);
+  flex-shrink: 0;
+}
+.cibil-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.cibil-meta {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.cibil-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.cibil-tile {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.cibil-tile small {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.cibil-tile b {
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.cibil-comp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.cibil-comp {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.cibil-comp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.cibil-comp-head b {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cibil-comp-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border-light);
+  margin: 8px 0 6px;
+  overflow: hidden;
+}
+.cibil-comp-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(to right, var(--primary), var(--success));
+}
+.cibil-comp small {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.cibil-factor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.cibil-factor:last-child { border-bottom: none; }
+.cibil-factor small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.cibil-factor > b {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cibil-pos { color: var(--success); }
+.cibil-neg { color: var(--danger); }
+.cibil-zero { color: var(--text-muted); }
+
+.cibil-accts {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.cibil-acct {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px;
+}
+.cibil-acct:last-child { border-bottom: none; }
+.cibil-acct > span:first-child { font-weight: 700; }
+.cibil-acct .badge { margin-left: auto; }
+.cibil-muted {
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.cibil-timeline {
+  display: flex;
+  flex-direction: column;
+}
+.cibil-month {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px;
+  font-weight: 600;
+}
+.cibil-month:last-child { border-bottom: none; }
+.cibil-month .badge { margin-left: auto; }
+.cibil-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cibil-dot-ok { background: var(--success); }
+.cibil-dot-late { background: var(--danger); }

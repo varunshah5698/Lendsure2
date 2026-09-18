@@ -637,6 +637,189 @@ def get_recommendation(bid: str, authorization: str | None = Header(default=None
         conn.close()
 
 
+# ---------------- CIBIL-style credit report ----------------
+# Deterministic, explainable, on-file-data-only estimate of a CIBIL-like
+# 300–900 score. Same borrower rows always yield the same report. This is
+# NOT an official TransUnion CIBIL bureau pull — every response says so.
+
+CIBIL_MODEL_VERSION = "lendsure-cibil-est-v1.0"
+
+
+def _cibil_num(v, default: float = 0.0) -> float:
+    try:
+        if v is None:
+            return default
+        return float(v)
+    except (TypeError, ValueError):
+        return default
+
+
+def _cibil_build(b: dict, snaps: list[dict], loans: list[dict], sched: list[dict],
+                 analysis: dict | None) -> dict:
+    """Pure deterministic builder: no I/O, no randomness, no wall-clock
+    inside the score path (only the outer envelope stamps generated_at)."""
+    late = _cibil_num(b.get("late_payments"))
+    bounced = _cibil_num(b.get("bounced_payments_6m"))
+    for s in snaps:
+        bounced += _cibil_num(s.get("bounced"))
+    defaults = _cibil_num(b.get("defaults"))
+    max_dpd = _cibil_num(b.get("max_days_past_due"))
+    missed_inst = sum(1 for s in sched if (s.get("status") or "") in ("MISSED", "LATE"))
+    income = _cibil_num(b.get("avg_income_6m")) or 1.0
+    debt = _cibil_num(b.get("avg_debt_6m"))
+    dti = debt / income
+    debt_accts = _cibil_num(b.get("existing_debt_accounts"))
+    age_m = _cibil_num(b.get("account_age_months"))
+    streak = _cibil_num(b.get("ontime_streak_months"))
+    enq = _cibil_num(b.get("applications_30d"))
+    new_dev = _cibil_num(b.get("new_device_90d"))
+    addr_ch = _cibil_num(b.get("address_changes_12m"))
+    lenders = _cibil_num(b.get("prev_lenders_count"))
+    repaid = _cibil_num(b.get("loans_repaid"))
+    thin = 1 if _cibil_num(b.get("first_time_borrower")) else 0
+
+    # Component maxes sum to the 600-point range (300 -> 900):
+    # payment 35% = 210, utilization 30% = 180, length 15% = 90,
+    # new credit 10% = 60, mix 10% = 60.
+    # 1. Payment history — 210 pts
+    pay = 210.0
+    pay -= min(defaults * 70.0, 200.0)
+    pay -= min(late * 10.0, 100.0)
+    pay -= min(bounced * 6.0, 60.0)
+    pay -= 0.0 if max_dpd <= 0 else (20.0 if max_dpd <= 30 else (40.0 if max_dpd <= 60 else (60.0 if max_dpd <= 90 else 80.0)))
+    pay -= min(missed_inst * 8.0, 50.0)
+    pay = max(0.0, pay)
+
+    # 2. Amounts owed / utilization — 180 pts
+    util = 180.0 * (1.0 - min(max(dti, 0.0), 1.5) / 1.5)
+    util -= min(debt_accts * 6.0, 30.0)
+    util = max(0.0, util)
+
+    # 3. Length of credit history — 90 pts, discounted when payment
+    # history is poor (a long but delinquent record counts for less).
+    length = 90.0 * min(max(age_m, 0.0), 84.0) / 84.0
+    length *= 0.4 + 0.6 * (pay / 210.0)
+
+    # 4. New credit / enquiries — 60 pts
+    newc = 60.0 - enq * 15.0 - new_dev * 8.0 - min(addr_ch, 3.0) * 4.0
+    newc = max(0.0, newc)
+
+    # 5. Credit mix — 60 pts
+    mix = 30.0 + min(lenders * 6.0, 18.0) + min(repaid * 3.0, 12.0) - thin * 12.0
+    mix = max(0.0, min(60.0, mix))
+
+    score = int(round(max(300.0, min(900.0, 300.0 + pay + util + length + newc + mix))))
+    if score >= 750:
+        band, band_label = "EXCELLENT", "Excellent"
+    elif score >= 700:
+        band, band_label = "GOOD", "Good"
+    elif score >= 650:
+        band, band_label = "FAIR", "Fair"
+    elif score >= 550:
+        band, band_label = "POOR", "Needs work"
+    else:
+        band, band_label = "VERY_POOR", "High risk"
+
+    factors = [
+        {"code": "pay_defaults", "title": "Defaults on record", "impact": "lowers" if defaults > 0 else "neutral",
+         "points": -int(min(defaults * 70, 210)), "observed": f"{int(defaults)} default(s)"},
+        {"code": "pay_late", "title": "Late payments", "impact": "lowers" if late > 0 else "neutral",
+         "points": -int(min(late * 10, 120)), "observed": f"{int(late)} late payment(s)"},
+        {"code": "pay_bounced", "title": "Bounced / missed payments (6m + schedule)", "impact": "lowers" if (bounced + missed_inst) > 0 else "neutral",
+         "points": -int(min(bounced * 8, 80) + min(missed_inst * 10, 60)),
+         "observed": f"{int(bounced)} bounced · {missed_inst} missed instalment(s)"},
+        {"code": "util_dti", "title": "Debt-to-income load", "impact": "lowers" if dti > 0.5 else ("raises" if dti <= 0.3 else "neutral"),
+         "points": int(round(util - 180 * (1.0 - min(max(0.4, 0.0), 1.5) / 1.5))),
+         "observed": f"DTI {dti:.2f} (debt {debt:,.0f} / income {income:,.0f})"},
+        {"code": "len_history", "title": "Length of credit history", "impact": "raises" if age_m >= 24 else "neutral",
+         "points": int(round(length)), "observed": f"{int(age_m)} months on record · {int(streak)} on-time streak"},
+        {"code": "new_enquiries", "title": "Recent credit hunger", "impact": "lowers" if enq > 0 else "neutral",
+         "points": -int(enq * 20 + new_dev * 10), "observed": f"{int(enq)} application(s) in 30d"},
+        {"code": "mix_depth", "title": "Credit mix depth", "impact": "raises" if (lenders + repaid) > 0 else "neutral",
+         "points": int(round(mix - 50)), "observed": f"{int(lenders)} past lender(s) · {int(repaid)} loan(s) repaid"},
+    ]
+
+    active = [l for l in loans if (l.get("status") or "") not in ("CLOSED", "COMPLETED")]
+    overdue = round(sum(max(_cibil_num(s.get("total_due")) - _cibil_num(s.get("paid")), 0.0)
+                        for s in sched if (s.get("status") or "") in ("MISSED", "LATE")), 2)
+    timeline = [{"month": s.get("month"), "label": s.get("label"),
+                 "status": "LATE" if _cibil_num(s.get("bounced")) > 0 else "ON_TIME",
+                 "bounced": int(_cibil_num(s.get("bounced")))} for s in snaps]
+
+    return {
+        "score": score, "band": band, "band_label": band_label,
+        "components": [
+            {"code": "payment_history", "title": "Payment history", "weight_pct": 35,
+             "points": int(round(pay)), "max_points": 210},
+            {"code": "amounts_owed", "title": "Amounts owed", "weight_pct": 30,
+             "points": int(round(util)), "max_points": 180},
+            {"code": "length", "title": "Length of history", "weight_pct": 15,
+             "points": int(round(length)), "max_points": 90},
+            {"code": "new_credit", "title": "New credit", "weight_pct": 10,
+             "points": int(round(newc)), "max_points": 60},
+            {"code": "mix", "title": "Credit mix", "weight_pct": 10,
+             "points": int(round(mix)), "max_points": 60},
+        ],
+        "factors": factors,
+        "accounts": {
+            "total": len(loans), "active": len(active),
+            "closed": len(loans) - len(active),
+            "total_disbursed": round(sum(_cibil_num(l.get("principal")) for l in loans), 2),
+            "total_outstanding": round(sum(_cibil_num(l.get("outstanding_principal")) for l in loans), 2),
+            "overdue_amount": overdue,
+            "items": [{"id": l.get("id"), "principal": l.get("principal"), "emi": l.get("emi"),
+                       "status": l.get("status"), "disbursed_at": l.get("disbursed_at")} for l in loans],
+        },
+        "payment_timeline": timeline,
+        "enquiries": {"last_30d": int(enq), "new_device_90d": int(new_dev),
+                      "address_changes_12m": int(addr_ch)},
+        "context": {"trust_score": (analysis or {}).get("trust_score"),
+                    "risk_level": (analysis or {}).get("risk_level"),
+                    "decision": (analysis or {}).get("decision")},
+    }
+
+
+@router.get("/borrowers/{bid}/cibil")
+def get_cibil_report(bid: str, authorization: str | None = Header(default=None), x_api_key: str | None = Header(default=None)):
+    """CIBIL-style credit report for one borrower ID: 300–900 score, band,
+    weighted components, account summary, payment timeline and enquiries —
+    all derived deterministically from on-file LendSure data."""
+    role = require_perm(authorization, x_api_key, "borrower.read")
+    conn = _DB()
+    try:
+        row = conn.execute("SELECT * FROM ls_borrowers WHERE borrower_id=?", (bid,)).fetchone()
+        if not row:
+            raise HTTPException(404, "Borrower not found")
+        b = _scrub_borrower(dict(row), role)
+        snaps = [dict(r) for r in conn.execute(
+            "SELECT month, label, income, expenses, debt, transactions, bounced FROM ls_financials"
+            " WHERE borrower_id=? ORDER BY month", (bid,))]
+        loans = [dict(r) for r in conn.execute(
+            "SELECT id, principal, emi, status, disbursed_at, outstanding_principal FROM ls_loans"
+            " WHERE borrower_id=? ORDER BY id", (bid,))]
+        sched: list[dict] = []
+        if loans:
+            q = ",".join("?" for _ in loans)
+            ids = [l["id"] for l in loans]
+            sched = [dict(r) for r in conn.execute(
+                f"SELECT total_due, paid, status FROM ls_schedule WHERE loan_id IN ({q})", ids)]
+        analyses = latest_analyses(conn)
+        report = _cibil_build(b, snaps, loans, sched, analyses.get(bid))
+        return {
+            "borrower_id": bid,
+            "name": b.get("name"), "age": b.get("age"), "city": b.get("city"),
+            "employment_type": b.get("employment_type"),
+            "model_version": CIBIL_MODEL_VERSION, "generated_at": now(),
+            "is_official_cibil": False,
+            "disclaimer": ("LendSure CIBIL-style estimate computed deterministically from on-file "
+                           "repayment, utilisation, history, enquiry and mix signals. Not an official "
+                           "TransUnion CIBIL bureau report."),
+            **report,
+        }
+    finally:
+        conn.close()
+
+
 class SimulateIn(BaseModel):
     borrower_id: str
     amount: float = Field(gt=0)

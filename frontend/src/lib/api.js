@@ -143,6 +143,11 @@ export const borrowers = {
   audit: (id, token) => api(`/ls/borrowers/${id}/audit`, {}, token),
 };
 
+// CIBIL-style credit report (deterministic on-file estimate, not a bureau pull)
+export const cibil = {
+  report: (id, token) => api(`/ls/borrowers/${encodeURIComponent(id)}/cibil`, {}, token),
+};
+
 // Documents
 export const documents = {
   list: (bid, token) => api(`/ls/borrowers/${bid}/documents`, {}, token),
