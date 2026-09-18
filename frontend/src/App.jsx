@@ -117,6 +117,7 @@ function AppLayout() {
                 <Route path="/admin/officers" element={<RequireLender><Officers /></RequireLender>} />
                 <Route path="/admin/approvals" element={<RequireLender><AdminApprovals /></RequireLender>} />
                 <Route path="/admin/model" element={<RequireLender><AdminModel /></RequireLender>} />
+                <Route path="/admin/policies" element={<RequireLender><AdminPolicies /></RequireLender>} />
                 <Route path="/admin/settings" element={<RequireLender><AdminSettings /></RequireLender>} />
                 <Route path="/admin/jobs" element={<RequireLender><AdminJobs /></RequireLender>} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
