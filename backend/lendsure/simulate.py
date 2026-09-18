@@ -51,7 +51,7 @@ def _clone_borrower(conn, template_bid: str, tag: str, tweaks: dict | None = Non
     if not src:
         raise HTTPException(422, f"template borrower {template_bid} not found")
     src = dict(src)
-    bid = f"SIM-{tag}-{int(time.time()) % 100000:05d}"
+    bid = f"SIM-{tag}-{int(time.time() * 1000) % 1000000:06d}"
     vals = {}
     for c in cols:
         if c == "borrower_id":
@@ -206,15 +206,21 @@ def _run(conn, actor: str, scenario: str) -> dict:
         t = _template(conn, "LOW")
         b1 = _clone_borrower(conn, t, "netA")
         b2 = _clone_borrower(conn, t, "netB")
+        # Unique phone per run: reruns stay isolated even if a previous
+        # SIM pair was never cleaned up (Cleanup wipes the SIM namespace).
+        sim_phone = f"+91-90000-SIM{int(time.time() * 1000) % 100000:05d}"
         conn.execute("UPDATE ls_borrowers SET phone=? WHERE borrower_id IN (?,?)",
-                     ("+91-90000-SIM01", b1, b2))
+                     (sim_phone, b1, b2))
         from .notify import emit
         for b in (b1, b2):
             emit(conn, "BorrowerAttributeChanged", "borrower", b, actor,
-                 {"field": "phone", "old": "", "new": "+91-90000-SIM01"})
-        step("SHARED PHONE (SIMULATION)", True, f"{b1} ↔ {b2} share +91-90000-SIM01", f"/borrower/{b1}?tab=network")
-        summ = conn.execute("SELECT COUNT(*) c FROM ls_borrowers WHERE phone='+91-90000-SIM01'").fetchone()["c"]
-        step("GRAPH LINK", summ == 2, f"{summ} borrowers share the identifier (exposure, not fraud)",
+                 {"field": "phone", "old": "", "new": sim_phone})
+        step("SHARED PHONE (SIMULATION)", True, f"{b1} ↔ {b2} share {sim_phone}", f"/borrower/{b1}?tab=network")
+        # Assert on the two NEW borrowers only — never a global count, so
+        # leftover pairs from earlier runs can't fail this step.
+        pair = conn.execute("SELECT COUNT(*) c FROM ls_borrowers WHERE phone=? AND borrower_id IN (?,?)",
+                            (sim_phone, b1, b2)).fetchone()["c"]
+        step("GRAPH LINK", pair == 2, "both new borrowers share the identifier (exposure, not fraud)",
              f"/borrower/{b1}?tab=network")
 
     conn.commit()
