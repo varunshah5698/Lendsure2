@@ -85,7 +85,7 @@ export default function NetworkTab({ bid, token, guest }) {
             {links.map((l, i) => (
               <div key={i} className="doc-row">
                 <div className="doc-info">
-                  <Link to={`/borrower/${l.borrower_id}`}><b>{l.borrower_name || l.borrower_id}</b></Link>
+                  <Link to={`/borrower/${l.borrower_id}`}><b>{l.name || l.borrower_id}</b></Link>
                   <small>via {l.via.identifier_type}: {l.via.value} · {l.via.confidence} confidence</small>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => setInspected({ ...l.via, peer: l })}>Why?</Button>
@@ -93,7 +93,7 @@ export default function NetworkTab({ bid, token, guest }) {
             ))}
             {inspected && (
               <div className="review-prev" style={{ marginTop: 12 }}>
-                <b>WHAT:</b> {inspected.peer.borrower_name} shares {inspected.identifier_type} <code>{inspected.value}</code><br />
+                <b>WHAT:</b> {inspected.peer.name || inspected.peer.borrower_id} shares {inspected.identifier_type} <code>{inspected.value}</code><br />
                 <b>WHY:</b> identical identifier value stored for both borrowers<br />
                 <b>EVIDENCE:</b> borrower profile records · {inspected.linked_count} borrower(s) share it<br />
                 <b>CONFIDENCE:</b> {inspected.confidence} · <b>TYPE:</b> observed fact (not inference)<br />

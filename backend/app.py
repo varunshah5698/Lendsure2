@@ -359,6 +359,68 @@ def _backfill_audit_chain(conn) -> int:
     return n
 
 
+_ID_STREETS = ("MG Road", "Station Road", "Gandhi Nagar", "Nehru Street",
+               "Park Street", "Lake View Road", "Market Road", "Shivaji Chowk")
+
+
+def _backfill_identifiers(conn, pair_every: int = 40) -> int:
+    """Fill empty borrower identifier columns deterministically from the
+    borrower_id hash. Idempotent: only touches values that are NULL or '',
+    so lender-confirmed identifiers (loan requests, SIM records) are never
+    overwritten, and re-runs change nothing. Every `pair_every`-th filled
+    borrower shares phone + address + device with its predecessor to model
+    household/shared-SIM exposure the fraud graph is built to surface.
+    Runs at every boot (same pattern as _backfill_audit_chain)."""
+    rows = conn.execute(
+        "SELECT borrower_id, name, city, phone, email, address_line,"
+        " device_id, bank_account FROM ls_borrowers").fetchall()
+    if not rows:
+        return 0
+
+    def _gen(bid: str, name: str, city: str) -> dict:
+        h = hashlib.sha256(bid.encode("utf-8")).hexdigest()
+        hi = int(h[:16], 16)
+        slug = re.sub(r"[^a-z0-9]", "", (name or "borrower").lower()) or "borrower"
+        return {
+            "phone": f"9{(100000000 + hi % 900000000):09d}",
+            "email": f"{slug}{bid[-4:].lower()}@example.in",
+            "address_line": f"{hi % 199 + 1} {_ID_STREETS[(hi >> 8) % len(_ID_STREETS)]}, {city or 'Mumbai'}",
+            "device_id": f"DEV-{h[:12].upper()}",
+            "bank_account": f"ACC{(hi % 10**10):010d}",
+        }
+
+    filled: list[str] = []
+    n = 0
+    for r in rows:
+        r = dict(r)
+        bid = r["borrower_id"]
+        gen = _gen(bid, r.get("name") or "", r.get("city") or "")
+        patch = {k: v for k, v in gen.items() if not (r.get(k) or "").strip()}
+        if patch:
+            conn.execute(
+                "UPDATE ls_borrowers SET {} WHERE borrower_id=?".format(
+                    ", ".join(f"{k}=?" for k in patch)),
+                (*patch.values(), bid))
+            n += 1
+            filled.append(bid)
+    # Household pairs: deterministic order, filled rows only.
+    filled.sort()
+    pairs = 0
+    for j in range(pair_every - 1, len(filled), pair_every):
+        src = conn.execute(
+            "SELECT phone, address_line, device_id FROM ls_borrowers WHERE borrower_id=?",
+            (filled[j - 1],)).fetchone()
+        if src:
+            conn.execute(
+                "UPDATE ls_borrowers SET phone=?, address_line=?, device_id=? WHERE borrower_id=?",
+                (src["phone"], src["address_line"], src["device_id"], filled[j]))
+            pairs += 1
+    if n or pairs:
+        conn.commit()
+        print(f"[ids] backfilled identifiers for {n} borrower(s), {pairs} household pair(s)", flush=True)
+    return n
+
+
 def init_db():
     conn = db()
     try:
@@ -409,6 +471,7 @@ def init_db():
         for _name, _sql in LS_MIGRATIONS:
             _apply_migration(conn, _name, _sql)
         _backfill_audit_chain(conn)
+        _backfill_identifiers(conn)
         conn.commit()
     finally:
         conn.close()
